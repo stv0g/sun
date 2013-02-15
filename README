@@ -1,3 +1,6 @@
 sun calculates the sun's rise/set times, the solar noon and the daylight time duration
 
 see manpage sun(1) for more information
+
+please note, that sun(1) is superseeded by calcelestial a new and more powerful project:
+https://github.com/stv0g/calcelestial/
