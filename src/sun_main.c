@@ -25,6 +25,8 @@
  * along with sun. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _BSD_SOURCE 1 /* for tm_gmtoff field in struct tm */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -32,7 +34,8 @@
 #include <getopt.h>
 #include <float.h>
 #include <math.h>
-#include <sys/time.h>
+#include <time.h>
+#include <limits.h>
 
 #include "../config.h"
 #include "sun.h"
@@ -120,7 +123,7 @@ int main(int argc, char *argv[]) {
 	char *format = "%H:%M";
 	char *query = NULL;
 	bool error = false;
-	int timezone = 0;
+	int timezone = INT_MAX; /* magic value for system default with dst */
 
 	enum mode mode = INVALID;
 	struct tm date;
@@ -130,12 +133,6 @@ int main(int argc, char *argv[]) {
 	time_t t;
 	time(&t);
 	localtime_r(&t, &date);
-
-	/* default timezone: system */
-	struct timezone tz;
-	if (gettimeofday(NULL, &tz) == 0) {
-		timezone = -tz.tz_minuteswest / 60.0;
-	}
 
 	/* parse mode */
 	if (argc > 1 && argv[1][0] != '-') {
@@ -179,6 +176,9 @@ int main(int argc, char *argv[]) {
 					fprintf(stderr, "invalid date: %s\n", optarg);
 					error = true;
 				}
+				else {
+					mktime(&date); /* update date.tm_gmtoff */
+				}
 				break;
 
 			case 'f':
@@ -215,6 +215,10 @@ int main(int argc, char *argv[]) {
 				fprintf(stderr, "unrecognized option %s\n", optarg);
 				error = true;
 		}
+	}
+
+	if (timezone == INT_MAX) {
+		timezone = date.tm_gmtoff / 3600;
 	}
 
 	/* validate mode */
@@ -268,6 +272,7 @@ int main(int argc, char *argv[]) {
 	printf("calculate for: %s\n", date_str);
 	printf("for position: %f, %f\n", pos.lat, pos.lon);
 	printf("with twilight: %f\n", twilight);
+	printf("with timezone: %d\n", timezone);
 #endif
 
 	/* start the calculation */
